@@ -1,149 +1,223 @@
-# streamlit_app.py
-import streamlit as st
+# app.py
+import customtkinter as ctk
+from tkinter import messagebox, Toplevel
 import speech_recognition as sr
 from googletrans import Translator
 from gtts import gTTS
 import os
+import webbrowser
+import threading
 import tempfile
 from playsound import playsound
 from language_map import get_language_names, get_code_by_name, get_name_by_code, detect_language_code, is_voice_supported
 import whisper
 from PIL import Image
 
-# Load whisper model
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("orange.json")
+
 whisper_model = whisper.load_model("base")
-translator = Translator()
 
-# App title
-st.set_page_config(page_title="kalakrit KAI", layout="wide")
-st.markdown("<h1 style='color:black; font-size: 40px;'>kalakrit <span style='color:#FF6D2F'>KAI</span></h1>", unsafe_allow_html=True)
+class KalakritKAI(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("kalakrit KAI")
+        self.geometry("1200x700")
+        self.resizable(False, False)
+        self.configure(fg_color="#FFF7F2")
 
-# Sidebar Menu
-with st.sidebar:
-    st.header("☰ Menu")
-    with st.expander("About Us"):
-        st.markdown("""
-        Kalakrit KAI (Kalakrit Artificial Insaan) is an advanced multilingual voice translator developed by Kalakrit Studios.
+        self.kai_variants = ["KAI", "काई", "ਕਾਈ", "కాయి", "கை", "ಕೈ", "കൈ", "كاي", "カイ", "凯"]
+        self.kai_index = 0
+        self.translator = Translator()
+
+        self.create_widgets()
+        self.rotate_kai_text()
+
+    def create_widgets(self):
+        self.logo_label = ctk.CTkLabel(self, text="kalakrit", font=("Segoe UI", 28, "bold"), text_color="#000000")
+        self.logo_label.place(x=20, y=20)
+        self.kai_label = ctk.CTkLabel(self, text="KAI", font=("Segoe UI", 28, "bold"), text_color="#000000")
+        self.kai_label.place(x=150, y=20)
+
+        self.menu_frame = None
+        self.menu_btn = ctk.CTkButton(self, text="☰", width=40, height=32, fg_color="#333333", hover_color="#555555",
+                                      text_color="#FFFFFF", command=self.toggle_menu)
+        self.menu_btn.place(x=1120, y=20)
+
+        self.input_card = ctk.CTkFrame(self, width=450, height=140, corner_radius=20, fg_color="#FFFFFF")
+        self.input_card.place(x=70, y=100)
+        self.lang_title = ctk.CTkLabel(self.input_card, text="Detected Language", font=("Segoe UI", 16), text_color="#333333")
+        self.lang_title.place(x=20, y=10)
+        self.input_label = ctk.CTkLabel(self.input_card, text="", font=("Segoe UI", 22, "bold"), text_color="#000000")
+        self.input_label.place(x=20, y=50)
+        self.mic_btn = ctk.CTkButton(self.input_card, text="🎤", width=40, height=40, fg_color="#FF6D2F", command=self.start_listening)
+        self.mic_btn.place(x=380, y=80)
+
+        self.output_card = ctk.CTkFrame(self, width=400, height=130, corner_radius=20, fg_color="#FFFFFF")
+        self.output_card.place(x=600, y=120)
+        self.output_lang_label = ctk.CTkLabel(self.output_card, text="", font=("Segoe UI", 16), text_color="#333333")
+        self.output_lang_label.place(x=20, y=10)
+        self.translated_label = ctk.CTkLabel(self.output_card, text="", font=("Segoe UI", 22, "bold"), text_color="#5A2B13")
+        self.translated_label.place(x=20, y=50)
+        self.speaker_btn = ctk.CTkButton(self.output_card, text="🔊", width=40, height=40, fg_color="#333333", command=self.speak_output)
+        self.speaker_btn.place(x=330, y=70)
+
+        self.support_title = ctk.CTkLabel(self, text="Need Help? We're Here for You", font=("Segoe UI", 22, "bold"), text_color="#000000")
+        self.support_title.place(relx=0.5, y=360, anchor="center")
+
+        self.write_card = ctk.CTkFrame(self, width=280, height=140, corner_radius=20, fg_color="#FFFFFF")
+        self.write_card.place(x=270, y=400)
+        ctk.CTkLabel(self.write_card, text="Write to Us", font=("Segoe UI", 18, "bold"), text_color="#000000").place(x=20, y=10)
+        ctk.CTkLabel(self.write_card, text="Reach us via email for\ntranslation help, app support,\nor collaboration queries.",
+                     font=("Segoe UI", 13), text_color="#333333", justify="left").place(x=20, y=45)
+        ctk.CTkButton(self.write_card, text="Write an Email", width=120, fg_color="#FF6D2F",
+                      command=lambda: webbrowser.open("mailto:lokalisuno@kalakrit.in")).place(x=70, y=100)
+
+        self.call_card = ctk.CTkFrame(self, width=280, height=140, corner_radius=20, fg_color="#FFFFFF")
+        self.call_card.place(x=610, y=400)
+        ctk.CTkLabel(self.call_card, text="Call Support Helpline", font=("Segoe UI", 18, "bold"), text_color="#000000").place(x=20, y=10)
+        ctk.CTkLabel(self.call_card, text="Available 7 days a week for\nurgent support or inquiries.", font=("Segoe UI", 13),
+                     text_color="#333333").place(x=20, y=50)
+        ctk.CTkButton(self.call_card, text="Give us a call", width=120, fg_color="#FF6D2F",
+                      command=lambda: messagebox.showinfo("Call", "Call us at 7042190859")).place(x=70, y=100)
+
+        ctk.CTkLabel(self, text="kalakrit Studios", font=("Segoe UI", 18, "bold"), text_color="#000000").place(relx=0.5, y=580, anchor="center")
+
+    def open_info_window(self, title, message):
+        popup = Toplevel(self)
+        popup.title(title)
+        popup.configure(bg="#FF6D2F")
+        popup.geometry("800x500")
+        #popup.resizable(False, False)
         
-        We specialize in:
-        - Voice-over and dubbing  
-        - AI-powered real-time translation  
-        - Multilingual education tools  
-        - Real-time interpretation  
-        
-        **Our mission:** Break language barriers using voice-based AI tools for students, creators, and businesses.
-        """)
-    
-    with st.expander("Partner with Kalakrit"):
-        st.markdown("""
-        Kalakrit Studios invites partnerships with:  
-        - EdTech startups  
-        - Media companies  
-        - Educational institutions  
-        - Global brands  
-        
-        We provide:
-        - AI voice tools  
-        - Custom translation solutions  
-        - White-label integrations  
-        
-        📩 Contact us via business email or Google Form.
-        """)
+        label_frame = ctk.CTkFrame(popup, fg_color="#FF6D2F", width=480, height=400)
+        label_frame.place(x=20, y=20)
 
-    with st.expander("Services We Provide"):
-        st.markdown("""
-        - Real-time multilingual voice translation  
-        - Dubbing & voice-over for videos  
-        - Localization of training content  
-        - Event interpretation tools  
-        - Custom AI chatbot solutions  
-        """)
+        label = ctk.CTkLabel(
+            label_frame,
+            text=message,
+            text_color="#000000",
+            fg_color="#FF6D2F",
+            font=("Segoe UI", 20 , "bold"),
+            wraplength=560,  # Ensures line wrapping inside 480px width
+            justify="left",
+            anchor="nw"
+        )
+        label.pack(padx=5, pady=5, anchor="w")
 
-    st.markdown("#### 🌐 Social Media")
-    cols = st.columns(4)
-    links = [
-        ("Instagram.png", "https://www.instagram.com/kalakrit.in"),
-        ("Facebook.png", "https://www.facebook.com/Kalakritofficial/"),
-        ("Youtube.png", "https://www.youtube.com/@Kalakrit"),
-        ("Linkedin.png", "https://www.linkedin.com/company/kalakrit")
-    ]
-    for i, (icon, url) in enumerate(links):
-        with cols[i]:
-            if os.path.exists(icon):
-                st.image(icon, width=30)
-                st.markdown(f"[Click here]({url})", unsafe_allow_html=True)
-            else:
-                st.warning(f"Missing {icon}")
+    def toggle_menu(self):
+        if self.menu_frame:
+            self.menu_frame.destroy()
+            self.menu_frame = None
+        else:
+            self.menu_frame = ctk.CTkFrame(self, width=250, height=360, corner_radius=10, fg_color="#333333")
+            self.menu_frame.place(x=920, y=60)
 
-# Input section
-st.markdown("---")
-st.subheader("🎤 Voice Input")
-if st.button("Start Speaking"):
-    try:
-        with st.spinner("Listening..."):
-            temp_audio_path = os.path.join(tempfile.gettempdir(), "input.wav")
+            ctk.CTkButton(self.menu_frame, text="About Us", fg_color="#444444", command=lambda: self.open_info_window(
+                "About Us",
+                "Kalakrit KAI (Kalakrit Artificial Insaan) is an advanced multilingual voice translator developed by Kalakrit Studios.\n\nWe specialize in:\n• Voice-over and dubbing\n• AI-powered real-time translation\n• Multilingual education tools\n• Real-time interpretation\n\nOur mission: Break language barriers using voice-based AI tools for students, creators, and businesses."
+            )).pack(pady=5)
+
+            ctk.CTkButton(self.menu_frame, text="Partner with Kalakrit", fg_color="#444444", command=lambda: self.open_info_window(
+                "Partner with Kalakrit",
+                "Kalakrit Studios invites partnerships with:\n• EdTech startups\n• Media companies\n• Educational institutions\n• Global brands\n\nWe provide:\n• AI voice tools\n• Custom translation solutions\n• White-label integrations\n\n📩 Contact us via business email or Google Form (google_form_link_here)."
+            )).pack(pady=5)
+
+            ctk.CTkButton(self.menu_frame, text="Services We Provide", fg_color="#444444", command=lambda: self.open_info_window(
+                "Services We Provide",
+                "Our key offerings include:\n\n✔ Real-time multilingual voice translation\n✔ Dubbing & voice-over for videos\n✔ Localization of training/learning content\n✔ Event interpretation tools\n✔ Custom AI chatbot solutions\n\nWe help EdTech, media, and global companies overcome communication gaps."
+            )).pack(pady=5)
+
+            social_frame = ctk.CTkFrame(self.menu_frame, fg_color="transparent")
+            social_frame.pack(pady=10)
+            links = [
+                ("Instagram.png", "https://www.instagram.com/kalakrit.in"),
+                ("Facebook.png", "https://www.facebook.com/Kalakritofficial/"),
+                ("Youtube.png", "https://www.youtube.com/@Kalakrit"),
+                ("Linkedin.png", "https://www.linkedin.com/company/kalakrit")
+            ]
+            for icon_path, link in links:
+                try:
+                    img = ctk.CTkImage(light_image=Image.open(icon_path), size=(24, 24))
+                    btn = ctk.CTkButton(social_frame, text="", width=36, height=36, image=img,
+                                        fg_color="#555555", command=lambda l=link: webbrowser.open(l))
+                    btn.pack(side="left", padx=4)
+                except Exception as e:
+                    print(f"Error loading icon: {icon_path} — {e}")
+
+    def rotate_kai_text(self):
+        self.kai_label.configure(text=self.kai_variants[self.kai_index])
+        self.kai_index = (self.kai_index + 1) % len(self.kai_variants)
+        self.after(3000, self.rotate_kai_text)
+
+    def start_listening(self):
+        threading.Thread(target=self.process_speech).start()
+
+    def process_speech(self):
+        try:
+            self.input_label.configure(text="Speak now...")
+            self.update()
+
+            audio_path = os.path.join(tempfile.gettempdir(), "input.wav")
             r = sr.Recognizer()
             with sr.Microphone() as source:
                 audio = r.listen(source)
-                with open(temp_audio_path, "wb") as f:
+                with open(audio_path, "wb") as f:
                     f.write(audio.get_wav_data())
 
-            result = whisper_model.transcribe(temp_audio_path)
+            result = whisper_model.transcribe(audio_path)
             user_text = result["text"]
             from_lang_code = detect_language_code(user_text)
             from_lang_name = get_name_by_code(from_lang_code) or from_lang_code.upper()
 
-            st.success(f"Input Detected: {user_text}")
-            st.info(f"Detected Language: {from_lang_name}")
+            self.input_label.configure(text=user_text)
+            self.lang_title.configure(text=f"Detected Language: {from_lang_name}")
 
-            tts_prompt = "Please say the language you want translation in."
-            tts = gTTS(text=tts_prompt, lang=from_lang_code)
-            temp_path = os.path.join(tempfile.gettempdir(), "prompt.mp3")
-            tts.save(temp_path)
-            playsound(temp_path)
-            os.remove(temp_path)
+            self.speak_text("Please say the language you want translation in.", from_lang_code)
+            self.update()
 
             with sr.Microphone() as source:
                 lang_audio = r.listen(source)
                 with open("lang_input.wav", "wb") as f:
                     f.write(lang_audio.get_wav_data())
-
             result_lang = whisper_model.transcribe("lang_input.wav")
             lang_name = result_lang["text"].strip()
             lang_code = get_code_by_name(lang_name)
 
             if not lang_code:
-                st.error("Unsupported or undetected target language.")
-            else:
-                st.success(f"Target Language: {lang_name}")
-                translated = translator.translate(user_text, dest=lang_code).text
-                st.markdown(f"### 📝 Translated Text: {translated}")
+                self.output_lang_label.configure(text="Unsupported Language")
+                self.translated_label.configure(text="Could not detect language")
+                self.speak_text("Sorry, I could not detect the target language.", from_lang_code)
+                return
 
-                if is_voice_supported(lang_name):
-                    tts = gTTS(text=translated, lang=lang_code)
-                    tts_path = os.path.join(tempfile.gettempdir(), "output.mp3")
-                    tts.save(tts_path)
-                    playsound(tts_path)
-                    os.remove(tts_path)
+            self.output_lang_label.configure(text=lang_name)
+            translated = self.translator.translate(user_text, dest=lang_code).text
+            self.translated_label.configure(text=translated)
 
-    except Exception as e:
-        st.error(f"Error: {e}")
+            if is_voice_supported(lang_name):
+                self.speak_text(translated, lang_code)
 
-# Support section
-st.markdown("---")
-st.markdown("### 🆘 Need Help? We're Here for You")
+        except Exception as e:
+            self.input_label.configure(text="Error")
+            messagebox.showerror("Error", str(e))
 
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("📧 Write to Us")
-    st.write("Reach us via email for help, support, or collaboration.")
-    if st.button("Write an Email"):
-        st.markdown("[Click to Email](mailto:lokalisuno@kalakrit.in)")
+    def speak_text(self, text, lang_code='hi'):
+        try:
+            temp_path = os.path.join(tempfile.gettempdir(), "kalakrit_temp.mp3")
+            tts = gTTS(text=text, lang=lang_code)
+            tts.save(temp_path)
+            playsound(temp_path)
+            os.remove(temp_path)
+        except Exception as e:
+            messagebox.showerror("TTS Error", str(e))
 
-with col2:
-    st.subheader("📞 Call Support Helpline")
-    st.write("Available 7 days a week for urgent inquiries.")
-    if st.button("Give us a Call"):
-        st.info("Call us at 7042190859")
+    def speak_output(self):
+        text = self.translated_label.cget("text")
+        lang_name = self.output_lang_label.cget("text")
+        lang_code = get_code_by_name(lang_name)
+        if text and lang_code:
+            self.speak_text(text, lang_code)
 
-st.markdown("### 🌍 kalakrit Studios")
+if __name__ == "__main__":
+    app = KalakritKAI()
+    app.mainloop()
