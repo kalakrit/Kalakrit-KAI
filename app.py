@@ -1,4 +1,4 @@
-# app.py
+# app.py (Updated UI only, original logic intact)
 import customtkinter as ctk
 from tkinter import messagebox, Toplevel
 import speech_recognition as sr
@@ -39,34 +39,33 @@ class KalakritKAI(ctk.CTk):
         self.kai_label = ctk.CTkLabel(self, text="KAI", font=("Segoe UI", 28, "bold"), text_color="#000000")
         self.kai_label.place(x=150, y=20)
 
-        self.menu_frame = None
         self.menu_btn = ctk.CTkButton(self, text="☰", width=40, height=32, fg_color="#333333", hover_color="#555555",
                                       text_color="#FFFFFF", command=self.toggle_menu)
         self.menu_btn.place(x=1120, y=20)
 
-        self.input_card = ctk.CTkFrame(self, width=450, height=140, corner_radius=20, fg_color="#FFFFFF")
-        self.input_card.place(x=70, y=100)
-        self.lang_title = ctk.CTkLabel(self.input_card, text="Detected Language", font=("Segoe UI", 16), text_color="#333333")
+        self.input_card = ctk.CTkFrame(self, width=500, height=150, corner_radius=25, fg_color="#FFFFFF")
+        self.input_card.place(x=80, y=100)
+        self.lang_title = ctk.CTkLabel(self.input_card, text="Detected Language", font=("Segoe UI", 16), text_color="#666666")
         self.lang_title.place(x=20, y=10)
         self.input_label = ctk.CTkLabel(self.input_card, text="", font=("Segoe UI", 22, "bold"), text_color="#000000")
         self.input_label.place(x=20, y=50)
         self.mic_btn = ctk.CTkButton(self.input_card, text="🎤", width=40, height=40, fg_color="#FF6D2F", command=self.start_listening)
-        self.mic_btn.place(x=380, y=80)
+        self.mic_btn.place(x=430, y=90)
 
-        self.output_card = ctk.CTkFrame(self, width=400, height=130, corner_radius=20, fg_color="#FFFFFF")
-        self.output_card.place(x=600, y=120)
-        self.output_lang_label = ctk.CTkLabel(self.output_card, text="", font=("Segoe UI", 16), text_color="#333333")
+        self.output_card = ctk.CTkFrame(self, width=500, height=150, corner_radius=25, fg_color="#FFFFFF")
+        self.output_card.place(x=80, y=270)
+        self.output_lang_label = ctk.CTkLabel(self.output_card, text="", font=("Segoe UI", 16), text_color="#666666")
         self.output_lang_label.place(x=20, y=10)
         self.translated_label = ctk.CTkLabel(self.output_card, text="", font=("Segoe UI", 22, "bold"), text_color="#5A2B13")
         self.translated_label.place(x=20, y=50)
         self.speaker_btn = ctk.CTkButton(self.output_card, text="🔊", width=40, height=40, fg_color="#333333", command=self.speak_output)
-        self.speaker_btn.place(x=330, y=70)
+        self.speaker_btn.place(x=430, y=90)
 
         self.support_title = ctk.CTkLabel(self, text="Need Help? We're Here for You", font=("Segoe UI", 22, "bold"), text_color="#000000")
-        self.support_title.place(relx=0.5, y=360, anchor="center")
+        self.support_title.place(relx=0.5, y=460, anchor="center")
 
         self.write_card = ctk.CTkFrame(self, width=280, height=140, corner_radius=20, fg_color="#FFFFFF")
-        self.write_card.place(x=270, y=400)
+        self.write_card.place(x=240, y=500)
         ctk.CTkLabel(self.write_card, text="Write to Us", font=("Segoe UI", 18, "bold"), text_color="#000000").place(x=20, y=10)
         ctk.CTkLabel(self.write_card, text="Reach us via email for\ntranslation help, app support,\nor collaboration queries.",
                      font=("Segoe UI", 13), text_color="#333333", justify="left").place(x=20, y=45)
@@ -74,62 +73,41 @@ class KalakritKAI(ctk.CTk):
                       command=lambda: webbrowser.open("mailto:lokalisuno@kalakrit.in")).place(x=70, y=100)
 
         self.call_card = ctk.CTkFrame(self, width=280, height=140, corner_radius=20, fg_color="#FFFFFF")
-        self.call_card.place(x=610, y=400)
+        self.call_card.place(x=630, y=500)
         ctk.CTkLabel(self.call_card, text="Call Support Helpline", font=("Segoe UI", 18, "bold"), text_color="#000000").place(x=20, y=10)
         ctk.CTkLabel(self.call_card, text="Available 7 days a week for\nurgent support or inquiries.", font=("Segoe UI", 13),
                      text_color="#333333").place(x=20, y=50)
         ctk.CTkButton(self.call_card, text="Give us a call", width=120, fg_color="#FF6D2F",
                       command=lambda: messagebox.showinfo("Call", "Call us at 7042190859")).place(x=70, y=100)
 
-        ctk.CTkLabel(self, text="kalakrit Studios", font=("Segoe UI", 18, "bold"), text_color="#000000").place(relx=0.5, y=580, anchor="center")
-
-    def open_info_window(self, title, message):
-        popup = Toplevel(self)
-        popup.title(title)
-        popup.configure(bg="#FF6D2F")
-        popup.geometry("800x500")
-        #popup.resizable(False, False)
-        
-        label_frame = ctk.CTkFrame(popup, fg_color="#FF6D2F", width=480, height=400)
-        label_frame.place(x=20, y=20)
-
-        label = ctk.CTkLabel(
-            label_frame,
-            text=message,
-            text_color="#000000",
-            fg_color="#FF6D2F",
-            font=("Segoe UI", 20 , "bold"),
-            wraplength=560,  # Ensures line wrapping inside 480px width
-            justify="left",
-            anchor="nw"
-        )
-        label.pack(padx=5, pady=5, anchor="w")
+        ctk.CTkLabel(self, text="kalakrit Studios", font=("Segoe UI", 18, "bold"), text_color="#000000").place(relx=0.5, y=670, anchor="center")
 
     def toggle_menu(self):
-        if self.menu_frame:
+        if hasattr(self, "menu_frame") and self.menu_frame:
             self.menu_frame.destroy()
             self.menu_frame = None
         else:
-            self.menu_frame = ctk.CTkFrame(self, width=250, height=360, corner_radius=10, fg_color="#333333")
-            self.menu_frame.place(x=920, y=60)
+            self.menu_frame = ctk.CTkFrame(self, width=260, height=370, corner_radius=12, fg_color="#333333")
+            self.menu_frame.place(x=910, y=60)
 
-            ctk.CTkButton(self.menu_frame, text="About Us", fg_color="#444444", command=lambda: self.open_info_window(
+            ctk.CTkButton(self.menu_frame, text="About Us", fg_color="#444444", text_color="#FFFFFF", command=lambda: self.open_info_window(
                 "About Us",
-                "Kalakrit KAI (Kalakrit Artificial Insaan) is an advanced multilingual voice translator developed by Kalakrit Studios.\n\nWe specialize in:\n• Voice-over and dubbing\n• AI-powered real-time translation\n• Multilingual education tools\n• Real-time interpretation\n\nOur mission: Break language barriers using voice-based AI tools for students, creators, and businesses."
-            )).pack(pady=5)
+                "Kalakrit KAI (Kalakrit Artificial Insaan) is an advanced multilingual voice translator developed by Kalakrit Studios.\n\nWe specialize in:\n• Voice-over and dubbing\n• AI-powered real-time translation\n• Multilingual education tools\n• Real-time interpretation"
+            )).pack(pady=4)
 
-            ctk.CTkButton(self.menu_frame, text="Partner with Kalakrit", fg_color="#444444", command=lambda: self.open_info_window(
+            ctk.CTkButton(self.menu_frame, text="Partner with Kalakrit", fg_color="#444444", text_color="#FFFFFF", command=lambda: self.open_info_window(
                 "Partner with Kalakrit",
-                "Kalakrit Studios invites partnerships with:\n• EdTech startups\n• Media companies\n• Educational institutions\n• Global brands\n\nWe provide:\n• AI voice tools\n• Custom translation solutions\n• White-label integrations\n\n📩 Contact us via business email or Google Form (google_form_link_here)."
-            )).pack(pady=5)
+                "Kalakrit Studios invites partnerships with:\n• EdTech startups\n• Media companies\n• Educational institutions\n• Global brands\n\nWe provide:\n• AI voice tools\n• Custom translation solutions\n• White-label integrations"
+            )).pack(pady=4)
 
-            ctk.CTkButton(self.menu_frame, text="Services We Provide", fg_color="#444444", command=lambda: self.open_info_window(
+            ctk.CTkButton(self.menu_frame, text="Services We Provide", fg_color="#444444", text_color="#FFFFFF", command=lambda: self.open_info_window(
                 "Services We Provide",
-                "Our key offerings include:\n\n✔ Real-time multilingual voice translation\n✔ Dubbing & voice-over for videos\n✔ Localization of training/learning content\n✔ Event interpretation tools\n✔ Custom AI chatbot solutions\n\nWe help EdTech, media, and global companies overcome communication gaps."
-            )).pack(pady=5)
+                "✔ Real-time multilingual voice translation\n✔ Dubbing & voice-over for videos\n✔ Localization of training content\n✔ Event interpretation tools\n✔ Custom AI chatbot solutions"
+            )).pack(pady=4)
 
             social_frame = ctk.CTkFrame(self.menu_frame, fg_color="transparent")
-            social_frame.pack(pady=10)
+            social_frame.pack(pady=8)
+
             links = [
                 ("Instagram.png", "https://www.instagram.com/kalakrit.in"),
                 ("Facebook.png", "https://www.facebook.com/Kalakritofficial/"),
@@ -217,6 +195,17 @@ class KalakritKAI(ctk.CTk):
         lang_code = get_code_by_name(lang_name)
         if text and lang_code:
             self.speak_text(text, lang_code)
+
+    def open_info_window(self, title, message):
+        popup = Toplevel(self)
+        popup.title(title)
+        popup.geometry("800x500")
+        popup.configure(bg="#FF6D2F")
+        label_frame = ctk.CTkFrame(popup, fg_color="#FF6D2F", width=480, height=400)
+        label_frame.place(x=20, y=20)
+        label = ctk.CTkLabel(label_frame, text=message, text_color="#000000", fg_color="#FF6D2F",
+                             font=("Segoe UI", 20, "bold"), wraplength=560, justify="left", anchor="nw")
+        label.pack(padx=5, pady=5, anchor="w")
 
 if __name__ == "__main__":
     app = KalakritKAI()
