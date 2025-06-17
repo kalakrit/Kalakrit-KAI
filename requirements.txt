@@ -1,5 +1,9 @@
 streamlit
-gtts
+streamlit-mic-recorder
+whisper
 googletrans==4.0.0-rc1
-openai-whisper
-pydub
+gTTS
+customtkinter
+Pillow
+playsound
+speechrecognition
